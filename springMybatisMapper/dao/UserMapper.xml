@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+						"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 命名空间，对statement的信息进行分类管理 类似包名 -->
+<mapper namespace="com.mybatis.dao.UserMapper">
+	<!-- 根据用户id查询用户信息 -->
+	<select id="findUserById" parameterType="Integer" resultType="user">
+		select * from user where id = #{id}
+	</select>
+	
+	<!-- 查找所有用户 -->
+	<select id="findAllUser" resultType="user">
+		select * from user;
+	</select>
+	<!-- 根据用户名模糊查询 -->
+	<select id="findUserByXName" parameterType="String" resultType="user">
+		select * from user where username like '%${value}%'
+	</select>
+	<!-- 添加用户 类似OGNL表达式 -->
+	<insert id="addUser" parameterType="user">
+		<!-- 查询主键，在标签内需要输入查询主键的sql 自增主键就要在之前查询 order="AFTER" -->
+		<selectKey keyProperty="id" resultType="Integer" order="AFTER">
+			select last_insert_id()
+		</selectKey>
+		<!-- 查询主键，UUID order="BEFORE" -->
+		<!-- <selectKey keyProperty="id" resultType="String" order="BEFORE" 只要不是自增主键，都必须设置为BEFORE> 
+			select UUID() </selectKey> -->
+		<!-- 查询主键， oracle -->
+		<!-- <selectKey keyProperty="id" resultType="Integer" order="BEFORE"> select 
+			seq.nextVal from dual </selectKey> -->
+		insert into user (username, birthday, sex, address)
+		values(#{username}, #{brithday}, #{sex}, #{address})
+	</insert>
+	<!-- 删除用户 -->
+	<delete id="deleteUserById" parameterType="Integer">
+		delete from user where
+		id = #{id}
+	</delete>
+	<!-- 修改用户 -->
+	<update id="updateUser" parameterType="user">
+		update user set username =
+		#{username}, birthday = #{brithday}, sex = #{sex}, address =
+		#{address} where id = #{id}
+	</update>
+
+	<!-- 定义sql片段 可以减少sql的重复写 sql片段可以定义sql语句中任何部分 -->
+	<!-- sql片段内最好不要使用where 和 select -->
+	<sql id="whereUsernameAndSex">
+		<if test="user != null">
+			<if test="user.username != null || user.username != ''">
+				and username like '%${user.username}%'
+			</if>
+			<if test="user.sex != null || user.sex != ''">
+				and sex = #{user.sex}
+			</if>
+		</if>
+
+		<if test="idList != null">
+			<!-- and id in (1, 10, 16) -->
+			and id in
+			<foreach collection="idList" item="id" open="(" close=")"
+				separator=",">
+				#{id}
+			</foreach>
+		</if>
+	</sql>
+
+	<!-- 综合查询 包装POJO类型 Map类型也一样 HashMap key == user -->
+	<select id="findUserList" parameterType="userQueryVO" resultType="user">
+		select * from user
+		<!-- where 标签 默认干掉第一个 and -->
+		<where>
+			<!-- 引入sql片段 -->
+			<include refid="whereUsernameAndSex"></include>
+		</where>
+	</select>
+
+	<!-- 综合查询 获取用户的总数 -->
+	<select id="findUserCount" parameterType="userQueryVO" resultType="int">
+		select count(*) from user
+		<!-- where 标签 默认干掉第一个 and -->
+		<where>
+			<!-- 引入sql片段 -->
+			<include refid="whereUsernameAndSex"></include>
+		</where>
+	</select>
+
+	<!-- 构造一个map -->
+	<resultMap type="user" id="UserMap">
+		<id column="id_" property="id" />
+		<result column="username_" property="username" />
+		<result column="sex_" property="sex" />
+	</resultMap>
+	<!-- 综合查询 通过用户id查询用户 -->
+	<select id="findUserByIdByMap" parameterType="int" resultMap="UserMap">
+		select id id_, username username_, sex sex_ from user where id = #{id}
+	</select>
+</mapper>
