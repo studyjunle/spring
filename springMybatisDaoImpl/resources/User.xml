@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+						"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 命名空间，对statement的信息进行分类管理  类似包名 -->
+<mapper namespace="dao">
+	<!-- 根据用户id查询用户信息 -->
+	<select id="findUserById" parameterType="Integer" resultType="user">
+		select * from user where id = #{id}
+	</select>
+	<!-- 查找所有用户 -->
+	<select id="findAllUser" resultType="com.mybatis.domain.User">
+		select * from user;
+	</select>
+	<!-- 根据用户名模糊查询 -->
+	<select id="findUserByXName" parameterType="String" resultType="com.mybatis.domain.User">
+		select * from user where username like '%${value}%'
+	</select>
+	<!-- 添加用户  类似OGNL表达式-->
+	<insert id="addUser" parameterType="com.mybatis.domain.User">
+		<!-- 查询主键，在标签内需要输入查询主键的sql 自增主键就要在之前查询 order="AFTER"-->
+		<selectKey keyProperty="id" resultType="Integer" order="AFTER">
+			select last_insert_id()
+		</selectKey>
+		<!-- 查询主键，UUID  order="BEFORE"-->
+		<!-- <selectKey keyProperty="id" resultType="String" order="BEFORE" 只要不是自增主键，都必须设置为BEFORE>
+			select UUID()
+		</selectKey> -->
+		<!-- 查询主键， oracle -->
+		<!-- <selectKey keyProperty="id" resultType="Integer" order="BEFORE">
+			select seq.nextVal from dual
+		</selectKey> -->
+		insert into user (username, birthday, sex, address) values(#{username}, #{brithday}, #{sex}, #{address})
+	</insert>
+	<!-- 删除用户 -->
+	<delete id="deleteUserById" parameterType="Integer">
+		delete from user where id = #{id}
+	</delete>
+	<!-- 修改用户 -->
+	<update id="updateUser" parameterType="com.mybatis.domain.User">
+		update user set username = #{username}, birthday = #{brithday}, sex = #{sex}, address = #{address} where id = #{id}
+	</update>
+</mapper>
