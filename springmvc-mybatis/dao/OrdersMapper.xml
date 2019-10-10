@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+						"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.springmvc.dao.OrdersMapper">
+	
+	<!-- 二级缓存  分布式 ehcache 记得在SqlMapConfig.xml文件开启
+	<cache type="org.mybatis.caches.ehcache.EhcacheCache" flushInterval="1000 * 60 * 30"/>-->
+	
+	<!-- 一对一 映射 使用resultType更方便 用于简单查询 对比请看下面两个查询 如果有特殊要求（对象嵌套对象）时，需要使用resultMap进行映射 
+		需求场景： 查询订单列表，然后再点击列表中的查看订单明细按钮，这个时候就需要使用resultMap进行结果映射 -->
+
+	<!-- 一对一 映射之resultType -->
+	<select id="findOrdersByOneToOne" resultType="ordersExt">
+		select
+			orders.id,
+			orders.user_id,
+			orders.number,
+			user.username
+		from user, orders
+		where
+			user.id = orders.user_id;
+	</select>
+
+	<!-- 创建一个ResultMap -->
+	<resultMap type="ordersExt" id="OrdersOneToOneAboutResultMap">
+		<!-- 订单信息 -->
+		<id column="id" property="id" />
+		<result column="user_id" property="user_id" />
+		<result column="number" property="number" />
+
+		<!-- 用户信息（一对一） -->
+		<!-- association 一对一关联映射 property：关联信息查询的结果将要映射的扩展类中的对象属性名称 -->
+		<!-- id标签，在关联查询时必须写上，不写会影响效率 -->
+		<association property="user" javaType="user">
+			<id column="user_id" property="id" />
+			<result column="username" property="username" />
+		</association>
+	</resultMap>
+	<!--一对一映射之 resultMap -->
+	<select id="findOrdersByOneToOneAboutResultMap" resultMap="OrdersOneToOneAboutResultMap">
+		select
+			orders.id,
+			orders.user_id,
+			orders.number,
+			user.username
+		from user, orders
+		where
+			user.id = orders.user_id;
+	</select>
+
+	<!-- 创建resultMap  extends只能继承type类型一致的-->
+	<resultMap type="ordersExt" id="OrdersOneToManyAboutResultMap" extends="OrdersOneToOneAboutResultMap">
+		<!-- 订单明细信息（一对多） 注意不再是javaType-->
+		<collection property="detailList" ofType="orderdetail">
+			<id column="orderdetailId" property="id"/>
+			<result column="items_id" property="items_id"/>
+			<result column="items_num" property="items_num"/>
+		</collection>
+	</resultMap>
+	<!-- 一对多 -->
+	<select id="findOrdersByOneToManyAboutResultMap" resultMap="OrdersOneToManyAboutResultMap">
+		select
+			orders.id,
+			orders.user_id,
+			orders.number,
+			user.username,
+			orderdetail.id orderdetailId,
+			orderdetail.items_id,
+			orderdetail.items_num
+		from user, orders, orderdetail
+		where
+			orders.user_id = user.id and orders.id = orderdetail.orders_id;
+	</select>
+	
+	<!-- 创建多对多结果映射resultMap -->
+	<resultMap type="user" id="UserAndItemManyToManyAboutResultMap">
+		<!-- 用户信息 -->
+		<id column="user_id" property="id" />
+		<result column="username" property="username" />
+		
+		<!-- 订单信息(一对多) -->
+		<collection property="orders" ofType="orders">
+			<id column="id" property="id" />
+			<result column="user_id" property="user_id" />
+			<result column="number" property="number" />
+			<!-- 订单明细信息（一对多） 注意不再是javaType-->
+			<collection property="detailList" ofType="orderdetail">
+				<id column="orderdetailId" property="id"/>
+				<result column="items_id" property="items_id"/>
+				<result column="items_num" property="items_num"/>
+				<!-- 商品信息 (一对一)-->
+				<association property="items" javaType="items">
+					<id column="items_id" property="id"/>
+					<result column="name" property="name"/>
+					<result column="price" property="price"/>
+				</association>
+			</collection>
+		</collection>
+		
+		
+		
+		
+	</resultMap>
+	<!-- 多对多映射 -->
+	<select id="findUserAndItemsManyToManyAboutResultMap" resultMap="UserAndItemManyToManyAboutResultMap">
+		select
+			orders.id,
+			orders.user_id,
+			orders.number,
+			user.username,
+			orderdetail.id orderdetailId,
+			orderdetail.items_id,
+			orderdetail.items_num,
+			items.name,
+			items.price
+		from user, orders, orderdetail, items
+		where
+			orders.user_id = user.id and orders.id = orderdetail.orders_id and orderdetail.items_id = items.id;
+	</select>
+	
+	
+	<!-- 延迟加载 -->
+	<resultMap type="ordersExt" id="OrderAndUserLazyLoading">
+		<!-- 订单信息 -->
+		<id column="id" property="id"/>
+		<result column="user_id" property="user_id"/>
+		<result column="number" property="number"/>
+		
+		<!-- 用户信息（一对一） -->
+		<!-- column 指通过订单信息查询出来的user_id作为 findUserById的入参（简单类型，直接写）		（对象类型的写法）{col1=prop1, col2=prop2} -->
+		<association property="user" select="com.mybatis.dao.UserMapper.findUserById" column="user_id"/>
+	</resultMap>
+	<select id="findOrderAndUserLazyLoading" resultMap="OrderAndUserLazyLoading">
+		select
+			*
+		from orders
+	</select>
+</mapper>
